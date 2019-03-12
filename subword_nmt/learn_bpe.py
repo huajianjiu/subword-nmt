@@ -21,6 +21,7 @@ import re
 import copy
 import argparse
 import warnings
+from tqdm import tqdm
 from collections import defaultdict, Counter
 
 # hack for python2/3 compatibility
@@ -68,7 +69,7 @@ def get_vocabulary(fobj, is_dict=False, meta_whitespace=False):
     """Read text and return dictionary that encodes vocabulary
     """
     vocab = Counter()
-    for i, line in enumerate(fobj):
+    for i, line in enumerate(tqdm(fobj, desc='Reading Text')):
         if is_dict:
             try:
                 word, count = line.strip('\r\n ').split(' ')
@@ -233,7 +234,7 @@ def learn_bpe(infile, outfile, num_symbols, min_frequency=2, verbose=False, is_d
 
     # threshold is inspired by Zipfian assumption, but should only affect speed
     threshold = max(stats.values()) / 10
-    for i in range(num_symbols):
+    for i in tqdm(range(num_symbols), desc='Iterating symbols.'):
         if stats:
             most_frequent = max(stats, key=lambda x: (stats[x], x))
 
