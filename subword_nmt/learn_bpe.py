@@ -64,7 +64,7 @@ def create_parser(subparsers=None):
 
     return parser
 
-def get_vocabulary(fobj, is_dict=False):
+def get_vocabulary(fobj, is_dict=False, meta_whitespace=False):
     """Read text and return dictionary that encodes vocabulary
     """
     vocab = Counter()
@@ -72,7 +72,8 @@ def get_vocabulary(fobj, is_dict=False):
         if is_dict:
             try:
                 word, count = line.strip('\r\n ').split(' ')
-                word = '_' + word # add meta symbol to indicate the whitespace
+                if meta_whitespace:
+                    word = '_' + word # add meta symbol to indicate the whitespace
             except:
                 print('Failed reading vocabulary file at line {0}: {1}'.format(i, line))
                 sys.exit(1)
@@ -80,7 +81,8 @@ def get_vocabulary(fobj, is_dict=False):
         else:
             for word in line.strip('\r\n ').split(' '):
                 if word:
-                    word = '_' + word  # add meta symbol to indicate the whitespace
+                    if meta_whitespace:
+                        word = '_' + word  # add meta symbol to indicate the whitespace
                     vocab[word] += 1
     return vocab
 
