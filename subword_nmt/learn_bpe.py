@@ -30,6 +30,14 @@ argparse.open = open
 
 def create_parser(subparsers=None):
 
+    def str2bool(v):
+        if v.lower() in ('yes', 'true', 't', 'y', '1'):
+            return True
+        elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+            return False
+        else:
+            raise argparse.ArgumentTypeError('Unsupported value encountered.')
+
     if subparsers:
         parser = subparsers.add_parser('learn-bpe',
             formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -62,6 +70,20 @@ def create_parser(subparsers=None):
     parser.add_argument(
         '--verbose', '-v', action="store_true",
         help="verbose mode.")
+    parser.add_argument(
+        '--pick_whiltespace',
+        type=str2bool,
+        nargs='?',  # means zero or one
+        const=False,  #Default value
+        help='True to use _ for whitespaces. False to not. Default is False.'
+    )
+    parser.add_argument(
+        '--end_of_word_symbol',
+        type=str2bool,
+        nargs='?',
+        const=True,
+        help='True to add </w> at the end of each word. False to not. Default is True.'
+    )
 
     return parser
 
@@ -205,16 +227,20 @@ def prune_stats(stats, big_stats, threshold):
                 big_stats[item] = freq
 
 
-def learn_bpe(infile, outfile, num_symbols, min_frequency=2, verbose=False, is_dict=False, total_symbols=False):
+def learn_bpe(infile, outfile, num_symbols, min_frequency=2, verbose=False, is_dict=False, total_symbols=False, meta_whitespace=False, end_word_symbol=True):
     """Learn num_symbols BPE operations from vocabulary, and write to outfile.
     """
 
+    # version 0.3beta add handling of meata symbol '_' for whilte space and end of word token.
     # version 0.2 changes the handling of the end-of-word token ('</w>');
     # version numbering allows bckward compatibility
-    outfile.write('#version: 0.2\n')
+    outfile.write('#version: 0.3beta\n')
 
-    vocab = get_vocabulary(infile, is_dict)
-    vocab = dict([(tuple(x[:-1])+(x[-1]+'</w>',) ,y) for (x,y) in vocab.items()])
+    vocab = get_vocabulary(infile, is_dict, meta_whitespace=meta_whitespace)
+    if end_word_symbol:
+        vocab = dict([(tuple(x[:-1])+(x[-1]+'</w>',) ,y) for (x,y) in vocab.items()])
+    else:
+        vocab = dict([(tuple(x[:-1])+(x[-1],) ,y) for (x,y) in vocab.items()])
     sorted_vocab = sorted(vocab.items(), key=lambda x: x[1], reverse=True)
 
     stats, indices = get_pair_statistics(sorted_vocab)
@@ -291,4 +317,5 @@ if __name__ == '__main__':
     if args.output.name != '<stdout>':
         args.output = codecs.open(args.output.name, 'w', encoding='utf-8')
 
-    learn_bpe(args.input, args.output, args.symbols, args.min_frequency, args.verbose, is_dict=args.dict_input, total_symbols=args.total_symbols)
+    learn_bpe(args.input, args.output, args.symbols, args.min_frequency, args.verbose, is_dict=args.dict_input,
+              total_symbols=args.total_symbols, meta_whitespace=args.pick_whiltespace, end_word_symbol=args.end_of_word_symbol)
